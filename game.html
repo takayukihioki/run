@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <link href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap" rel="stylesheet">
+    <title>走れグラッピちゃん</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: #FFFAEC;
+            font-family: 'DotGothic16', sans-serif;
+            touch-action: none;
+            overflow: hidden;
+        }
+
+        #game-container {
+            width: 100%;
+            height: 100%;
+            max-width: 430px;
+            max-height: 932px;
+            position: relative;
+            background: #FFFAEC;
+            overflow: hidden;
+        }
+
+        #score-display {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            font-size: 24px;
+            z-index: 100;
+        }
+
+        #player {
+            width: 60px;
+            height: 60px;
+            position: absolute;
+            bottom: 50px;
+            left: 50px;
+            background-image: url('./images/Grappi-chan.png');
+            background-size: contain;
+            background-repeat: no-repeat;
+            transform-origin: bottom center;
+            z-index: 1000;
+            bottom: 73px;
+        }
+
+        .obstacle {
+            position: absolute;
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: bottom;
+        }
+
+        .item {
+            position: absolute;
+            width: 60px;
+            height: 60px;
+            background-size: contain;
+            background-repeat: no-repeat;
+        }
+
+        .running {
+            animation: run 0.5s infinite steps(2);
+        }
+
+        .jumping {
+            animation: jump 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        @keyframes run {
+            0% {
+                transform: translateY(0);
+            }
+
+            100% {
+                transform: translateY(-5px);
+            }
+        }
+
+        @keyframes jump {
+            0% {
+                transform: translateY(0);
+            }
+
+            50% {
+                transform: translateY(-250px);
+            }
+
+            100% {
+                transform: translateY(0);
+            }
+        }
+
+        #start-message {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 24px;
+            text-align: center;
+        }
+
+        #ground {
+            position: absolute;
+            bottom: 48px;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background-color: #8B4513;
+            z-index: 10;
+            bottom: 70px;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="game-container">
+        <div id="score-display">
+            <div>時間: <span id="time">0</span>秒</div>
+            <div>ポイント: <span id="points">0</span>P</div>
+            <div>合計: <span id="total">0</span>/300</div>
+        </div>
+        <div id="player"></div>
+        <div id="ground"></div>
+        <div id="start-message">グラッピちゃんをタッチしてスタート！</div>
+    </div>
+
+    <script>
+        const player = document.getElementById('player');
+        const gameContainer = document.getElementById('game-container');
+        const startMessage = document.getElementById('start-message');
+        const timeDisplay = document.getElementById('time');
+        const pointsDisplay = document.getElementById('points');
+        const totalDisplay = document.getElementById('total');
+
+        let isPlaying = false;
+        let gameTime = 0;
+        let points = 0;
+        let gameTimer;
+        let isJumping = false;
+        let bgm = new Audio('./audios/game.mp3');
+        bgm.loop = true;
+        let jumpSound = new Audio('./audios/jump.mp3');
+        let itemGetSound = new Audio('./audios/item-get.mp3');
+
+        const obstacles = [
+            { type: 'campfire', width: 40, height: 40, image: './images/campfire.png' },
+            { type: 'wizard', width: 60, height: 60, image: './images/wizard.png' },
+            { type: 'spaceship', width: 70, height: 70, image: './images/spaceship.png' }
+        ];
+
+        const items = [
+            { type: 'drink', points: 10, image: './images/drink-game.png' },
+            { type: 'ice', points: 20, image: './images/pita-ice-game.png' }
+        ];
+
+        function startGame() {
+            console.log('startGame called');
+            if (isPlaying) return;
+
+            isPlaying = true;
+            startMessage.style.display = 'none';
+            player.classList.add('running');
+
+            setTimeout(() => {
+                bgm.play().catch(error => console.log('BGM autoplay failed:', error));
+            }, 100);
+
+            gameTimer = setInterval(() => {
+                gameTime++;
+                updateScore();
+                if (gameTime % 3 === 0) {
+                    createObstacle();
+                }
+                if (gameTime % 10 === 0) {
+                    createItem();
+                }
+            }, 1000);
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        function createObstacle() {
+            const obstacle = obstacles[Math.floor(Math.random() * obstacles.length)];
+            const obstacleEl = document.createElement('div');
+            obstacleEl.className = 'obstacle';
+            obstacleEl.style.width = obstacle.width + 'px';
+            obstacleEl.style.height = obstacle.height + 'px';
+            obstacleEl.style.backgroundImage = `url(${obstacle.image})`;
+            obstacleEl.style.left = gameContainer.offsetWidth + 'px';
+            obstacleEl.style.bottom = '70px';
+            gameContainer.appendChild(obstacleEl);
+
+            const moveObstacle = () => {
+                const currentLeft = parseInt(obstacleEl.style.left);
+                if (currentLeft < -obstacle.width) {
+                    obstacleEl.remove();
+                    return;
+                }
+                obstacleEl.style.left = (currentLeft - 5) + 'px';
+                if (isPlaying) {
+                    requestAnimationFrame(moveObstacle);
+                }
+            };
+            requestAnimationFrame(moveObstacle);
+        }
+
+        function createItem() {
+            const item = items[Math.floor(Math.random() * items.length)];
+            const itemEl = document.createElement('div');
+            itemEl.className = 'item';
+            itemEl.dataset.points = item.points;
+            itemEl.style.backgroundImage = `url(${item.image})`;
+            itemEl.style.left = gameContainer.offsetWidth + 'px';
+            itemEl.style.bottom = '150px';
+            gameContainer.appendChild(itemEl);
+
+            const moveItem = () => {
+                const currentLeft = parseInt(itemEl.style.left);
+                if (currentLeft < -40) {
+                    itemEl.remove();
+                    return;
+                }
+                itemEl.style.left = (currentLeft - 5) + 'px';
+                if (isPlaying) {
+                    requestAnimationFrame(moveItem);
+                }
+            };
+            requestAnimationFrame(moveItem);
+        }
+
+        function jump() {
+            jumpSound.play().catch(error => console.log('Jump sound play failed:', error));
+            if (isJumping) return;
+            isJumping = true;
+            player.classList.remove('running');
+            player.classList.add('jumping');
+            setTimeout(() => {
+                player.classList.remove('jumping');
+                player.classList.add('running');
+                isJumping = false;
+            }, 800);
+        }
+
+        function checkCollision(rect1, rect2) {
+            const margin = 5;
+            return !(rect1.right - margin < rect2.left + margin ||
+                rect1.left + margin > rect2.right - margin ||
+                rect1.bottom - margin < rect2.top + margin ||
+                rect1.top + margin > rect2.bottom - margin);
+        }
+
+        function gameLoop() {
+            if (!isPlaying) return;
+
+            const playerRect = player.getBoundingClientRect();
+
+            document.querySelectorAll('.obstacle').forEach(obstacle => {
+                const obstacleRect = obstacle.getBoundingClientRect();
+                if (checkCollision(playerRect, obstacleRect)) {
+                    gameOver();
+                }
+            });
+
+            document.querySelectorAll('.item').forEach(item => {
+                const itemRect = item.getBoundingClientRect();
+                if (checkCollision(playerRect, itemRect)) {
+                    points += parseInt(item.dataset.points);
+                    item.remove();
+                    updateScore();
+                    itemGetSound.play().catch(error => console.log('Item get sound play failed:', error));
+                }
+            });
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        function updateScore() {
+            const total = gameTime + points;
+            timeDisplay.textContent = gameTime;
+            pointsDisplay.textContent = points;
+            totalDisplay.textContent = total;
+
+            if (total >= 300) {
+                gameClear();
+            }
+        }
+
+        function gameOver() {
+            endGame('ゲームオーバー！');
+        }
+
+        function gameClear() {
+            endGame('ゲームクリア！');
+        }
+
+        function endGame(message) {
+            isPlaying = false;
+            clearInterval(gameTimer);
+            bgm.pause();
+            bgm.currentTime = 0;
+
+            const params = new URLSearchParams({
+                time: gameTime,
+                items: points
+            });
+
+            if (message.includes('クリア')) {
+                window.location.href = `game-clear.html?${params.toString()}`;
+            } else {
+                window.location.href = `game-over.html?${params.toString()}`;
+            }
+        }
+
+        player.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            console.log('Player touched');
+            if (!isPlaying) {
+                startGame();
+            } else {
+                jump();
+            }
+        });
+
+        gameContainer.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            console.log('Game container touched');
+            if (isPlaying) {
+                jump();
+            }
+        });
+    </script>
+</body>
+
+</html>

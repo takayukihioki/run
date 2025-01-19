@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <link href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap" rel="stylesheet">
+    <title>走れグラッピちゃん！！</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: #FFFAEC;
+            font-family: "DotGothic16", serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            color: #333;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 24px;
+            margin: 30px 0;
+        }
+
+        .description {
+            font-size: 16px;
+            line-height: 1.8;
+            margin: 20px 0;
+            white-space: pre-line;
+        }
+
+        .start-button {
+            font-family: "DotGothic16", serif;
+            background-color: #578E7E;
+            color: white;
+            border: none;
+            border-radius: 25px;
+            padding: 15px 40px;
+            font-size: 18px;
+            margin: 30px 0;
+            cursor: pointer;
+            transition: opacity 0.3s;
+        }
+
+        .start-button:active {
+            opacity: 0.8;
+        }
+
+        .items-section {
+            margin-top: 40px;
+        }
+
+        .items-title {
+            font-size: 18px;
+            margin-bottom: 20px;
+        }
+
+        .items-container {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+        }
+
+        .item {
+            text-align: center;
+        }
+
+        .item-image {
+            width: 120px;
+            height: 120px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            object-fit: cover;
+        }
+
+        .item-points {
+            margin-top: 5px;
+            font-size: 14px;
+        }
+
+        .logo {
+            width: 100px;
+            height: 100px;
+            margin: 20px auto;
+            display: block;
+        }
+
+        @media (max-width: 350px) {
+            .items-container {
+                flex-direction: column;
+                align-items: center;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <img src="images/logo.png" alt="ロゴ" class="logo">
+        <h1>走れグラッピちゃん！！</h1>
+
+        <div class="description">
+            障害物をジャンプで交わしながら
+            アイテムを集めてください
+            ポイントに応じて
+            プレゼントを贈呈させて頂きます
+            (300P獲得でゲームクリア)
+        </div>
+
+        <button class="start-button" onclick="startGame()">ゲームスタート</button>
+
+        <div class="items-section">
+            <div class="items-title">【アイテムポイント】</div>
+            <div class="items-container">
+                <div class="item">
+                    <img src="images/drink.png" alt="ドリンク" class="item-image">
+                    <div class="item-points">ドリンク10P</div>
+                </div>
+                <div class="item">
+                    <img src="images/pita-ice.png" alt="ピタパンアイス" class="item-image">
+                    <div class="item-points">ピタパンアイス20P</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function startGame() {
+            window.location.href = 'game.html';
+        }
+
+        // ダブルタップによるズームを防止
+        document.addEventListener('touchstart', function (event) {
+            if (event.touches.length > 1) {
+                event.preventDefault();
+            }
+        }, { passive: false });
+
+        let lastTouchEnd = 0;
+        document.addEventListener('touchend', function (event) {
+            const now = (new Date()).getTime();
+            if (now - lastTouchEnd <= 300) {
+                event.preventDefault();
+            }
+            lastTouchEnd = now;
+        }, false);
+    </script>
+</body>
+
+</html>
